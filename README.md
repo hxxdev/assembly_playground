@@ -148,7 +148,7 @@ about rfl(flag register)
 -----------------------------------
 ### Microsoft x64 Calling Convention
 
-What is calling convention?
+###### What is calling convention?
 - Strict guidelines that our assembly code must adhere to in order for the OS to be able to run our code.  
 
 For x64 calling convention document, refer to [Microsoft Guide](https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention).
@@ -254,7 +254,7 @@ Registers are either volatile or non-volatile.
 - `rbx`, `rbp`, `rdi`, `rsi`, `rsp`, and `r12~15` registers are considered non-volatile.
 
 #### The shadow space(home space)
-Under the Microsoft x64 calling convention, there is a unique concept of what's known as a shadow space, also referred to as a home space. This is a space that is reserved every time you enter a function and is equal to at least 32 bytes (which is enough space to hold 4 arguments). This space must be reserved whenever you're making use of the stack, since it's what is reserved for things leaving the register values on the stack for debuggers to inspect later on. While the calling convention does not explicitly require the callee to use the shadow space, you should allocate it regardless when you are utilizing the stack, especially in a non-leaf function.
+Under the Microsoft x64 calling convention, there is a unique concept of what's known as a *shadow space*, also referred to as a home space. This is a space that is reserved every time you enter a function and is equal to at least 32 bytes (which is enough space to hold 4 arguments). This space must be reserved whenever you're making use of the stack, since it's what is reserved for things leaving the register values on the stack for debuggers to inspect later on. While the calling convention does not explicitly require the callee to use the shadow space, you should allocate it regardless when you are utilizing the stack, especially in a non-leaf function.
 
 Also, as a reminder, no matter how much space you allocate for the shadow space and your own function's variables, you still need to ensure that the stack pointer is aligned on a 16-byte boundary after all is said and done.
 
@@ -291,8 +291,9 @@ main:
     xor     rax, rax
     call    ExitProcess
 ```
+-----------------------------------
 
-## Addressing mode
+### Addressing mode
 - immediate addressing
 mov rax, 0
 - register addressing
@@ -302,4 +303,119 @@ mov rax, rbx
 mov rax, [rbx]
 ```
 - rip-relative addressing
+Before rip-relative addressing was available, the loader had to *fix up* all the codes to relocate any instances of memory addresses that were specified in an absolute manner and add displacement according the program's base address. This *fix up* process was saved in format of instructions in `.reloc` section of PE file format. To tell our assembler(NASM) to compile our program with rip-relative addressing, the directive `default rel`  is used.
 
+-----------------------------------
+
+### Data Segment
+```
+segment .data
+    msg db "Hello world!", 0xd, 0xa, 0
+```
+- define a variable named `msg` of type byte.
+- `db` is mmemonic for "define byte"
+- 0xd : CR(carriage return)
+- 0xf : LF(line feed)
+- In Linux, only `LF` is used for line-ending.
+
+-----------------------------------
+
+### Importing and exporting symbols
+- `extern` keyword : used for importing symbols
+- `global` keyword : used for exporting symbols
+- `_CRT_INIT` refers to Microsoft Visual C++ standard run-time library(MSVCRT) which is Microsoft's implementation of the C99 ISO standard. `libc/libc++` are the equivalents on Linux.
+
+-----------------------------------
+
+
+### `WinMain` and `main`
+##### What is C Runtime (CRT)?
+**The C Runtime Library (CRT)** is a collection of functions, macros, and other resources that provide essential functionality required by C programs. It includes:
+- Memory management (malloc, free)
+- String manipulation (strcpy, strlen, etc.)
+- File I/O (fopen, fread, etc.)
+- Standard input/output (printf, scanf, etc.)
+- Mathematical functions (sin, cos, etc.)
+- Process and environment management (exit, getenv, etc.)
+
+##### How CRT Works
+1. Initialization Phase
+Before main() is called, the CRT sets up the environment.
+It initializes global variables, static variables, and handles command-line arguments. If necessary, it sets up thread-local storage and floating-point settings.
+2. Execution Phase
+The actual user-defined main() function runs.
+3. Termination Phase
+CRT cleans up resources like open file handles and allocated memory.
+Calls functions registered with atexit().
+Exits using exit() or _exit().
+
+##### Program Entry Point
+The entry point of a C program is where execution begins. Although most programmers consider main() as the starting point, the actual entry point is determined by the runtime environment and the operating system.
+
+##### Common Entry Points
+- Standard C Program:
+    - The true entry point in most systems is _start (not main()).
+    - _start is typically provided by the CRT or system startup code.
+    - _start calls the CRT initialization routine and then calls main().
+- Windows:
+    - Windows programs use mainCRTStartup() (for console apps) or WinMainCRTStartup() (for GUI apps).
+    - These functions initialize the CRT before calling main() or WinMain().
+- Custom Entry Points:
+    - In embedded systems or specialized environments, the entry point can be defined explicitly (e.g., using linker scripts).
+
+##### How Execution Flows
+1. OS loads the executable → Calls _start
+2. CRT initializes → Sets up stack, heap, static/global variables
+3. CRT calls main()
+4. Program runs
+5. CRT handles termination → Calls cleanup functions, exits
+
+> ###### from Microsoft Developer Network(MSDN)...
+> If your project is built using /ENTRY, and if /ENTRY is passed a function other than `_DllMainCRTStartup`, the function must call `_CRT_INIT` to initialize the CRT. This call alone is not sufficient if your DLL uses /GS, requires static initializers, or is called in the context of MFC or ATL code. See DLLs and Visual C++ run-time library behavior for more information. 
+
+-----------------------------------
+
+### Making a shadow space
+```
+push rbp
+mov rbp, rsp
+sub rsp, 32
+```
+- `push rbp` : saves the base pointer of stack used by previous scope.
+- `mov rbp, rsp` : pass the start point of stack used by current scope.
+- `sub rsp, 32` : allocate 32-byte of stack to be used by current scope.
+- This snippet of code(or some variations) will be there at the beginning of every function writen in assembly!
+
+-----------------------------------
+
+### `lea` vs `mov`
+#### `lea`(Load Effective Address) 
+- computes the effective memory address of the source operand and stores it in the destination register.
+- It does *not* access memory; only performs address calculation.
+- The source operand *must* be enclosed in square brackets(`[]`).
+- Square brackets(`[]`) is to treat the value inside as a *memory address*.
+- Example
+```
+lea rax, [rbx+4] ; Compute the address (rbx + 4) and store it in rax
+```
+#### `mov`(Move)
+- copies the value from a source operand to destination operand.
+- It accesses memory unlike `lea`.
+- Source operand shall not inclue an arithmetic operation without square brackets(`[]`).
+- Example
+```
+mov rax, [rbx+4] ; Load the value stored at the memory address [rbx+4] into rax
+```
+-----------------------------------
+
+### Shutting down the program
+- The return value for a function goes into `rax` register.
+- Example
+    ```
+    xor rax, rax
+    call ExitProcess
+    ```
+    - It sets the return value of function `main` as `0` by xor-ing them out.
+    - It calls Win32 ExitProcess function.
+
+-----------------------------------

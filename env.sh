@@ -5,7 +5,7 @@ export PATH_VCVARS="$PATH_VS/VC/Auxiliary/Build/vcvarsall.bat"
 alias nasm="$PATH_NASM"
 alias link="mylink"
 mylink() {
-	cmd.exe /K "pushd $(wslpath -w $(pwd)) && "$(wslpath -w "$PATH_VCVARS")" x64 && link ./"$1".obj /subsystem:console /out:"$1".exe kernel32.lib legacy_stdio_definitions.lib msvcrt.lib && popd && exit"
+	cmd.exe /K "pushd $(wslpath -w $(pwd)) && "$(wslpath -w "$PATH_VCVARS")" x64 && link ./"$1".obj /subsystem:console /out:"$1".exe /defaultlib:ucrt.lib /defaultlib:msvcrt.lib /defaultlib:legacy_stdio_definitions.lib /defaultlib:kernel32.lib /defaultlib:shell32.lib /nologo /incremental:no && popd && exit"
 	chmod u+x "$1".exe
 	./"$1".exe
 }

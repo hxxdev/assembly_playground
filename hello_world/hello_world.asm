@@ -7,7 +7,6 @@ segment .data
 segment .text
 global main
 extern ExitProcess
-
 extern printf
 
 main:
