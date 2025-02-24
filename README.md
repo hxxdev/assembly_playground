@@ -385,27 +385,6 @@ sub rsp, 32
 - `mov rbp, rsp` : pass the start point of stack used by current scope.
 - `sub rsp, 32` : allocate 32-byte of stack to be used by current scope.
 - This snippet of code(or some variations) will be there at the beginning of every function writen in assembly!
-
------------------------------------
-
-### `lea` vs `mov`
-#### `lea`(Load Effective Address) 
-- computes the effective memory address of the source operand and stores it in the destination register.
-- It does *not* access memory; only performs address calculation.
-- The source operand *must* be enclosed in square brackets(`[]`).
-- Square brackets(`[]`) is to treat the value inside as a *memory address*.
-- Example
-```
-lea rax, [rbx+4] ; Compute the address (rbx + 4) and store it in rax
-```
-#### `mov`(Move)
-- copies the value from a source operand to destination operand.
-- It accesses memory unlike `lea`.
-- Source operand shall not inclue an arithmetic operation without square brackets(`[]`).
-- Example
-```
-mov rax, [rbx+4] ; Load the value stored at the memory address [rbx+4] into rax
-```
 -----------------------------------
 
 ### Shutting down the program

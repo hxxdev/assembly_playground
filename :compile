@@ -1,0 +1,39 @@
+#!/bin/bash
+
+usage() {
+    echo "Usage: $0 -i <asm filename> [-d]"
+    exit 1
+}
+
+
+LINK_OPTION_APPLICATION=""
+OUTPUT_FORMAT="exe"
+
+
+while getopts "hd" opt; do
+    case $opt in
+        d)
+            echo "dll"
+            LINK_OPTION_APPLICATION="/dll"
+            OUTPUT_FORMAT="dll"
+            ;;
+        h)
+            usage
+            ;;
+        *)
+            usage
+            ;;
+    esac
+done
+
+shift $((OPTIND - 1))
+FILE_NAME="$1"
+
+echo "Generating "$FILE_NAME"."$OUTPUT_FORMAT""
+LINK_CMD="link ./"$FILE_NAME".obj "$LINK_OPTION_APPLICATION" /subsystem:console /defaultlib:ucrt.lib /defaultlib:msvcrt.lib /defaultlib:legacy_stdio_definitions.lib /defaultlib:kernel32.lib /defaultlib:shell32.lib /nologo /incremental:no /out:"$FILE_NAME"."$OUTPUT_FORMAT""
+
+cmd.exe /K "pushd $(wslpath -w $(pwd)) && "$(wslpath -w "$PATH_VCVARS")" x64 && echo $LINK_CMD && $LINK_CMD && popd && exit"
+chmod u+x "$FILE_NAME"."$OUTPUT_FORMAT"
+if [ "$OUTPUT_FORMAT" == "exe" ]; then
+    ./"$FILE_NAME"."$OUTPUT_FORMAT"
+fi
