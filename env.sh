@@ -14,7 +14,6 @@ parse_arg() {
 	OPTIND=1
 	DLL_MODE=0
 	while getopts "hd" opt; do
-		echo $opt
 		case $opt in
 			d)
 				DLL_MODE=1

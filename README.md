@@ -1,19 +1,34 @@
 # assembly_playground
 This document is rewritten based on [sonictk's artice](https://sonictk.github.io/asm_tutorial/)
-## 1. CPU
-### Application Binarty Interface(ABI)
-Microsoft X64 and System V ABI are both Application Binary Interfaces (ABIs) that define how low-level binary details are expressed. They differ in how they organize registers, calling conventions, and other details. 
+
+-----------------------------------
+### Application Binary Interface(ABI)
+Application Binary Interface(ABI) refers to set of conventions, rules, and guidelines that govern how programs interact with the operating system. Therefore, it is defined by OS designer. 
+ 
+ ABI includes:
+ - how functions are called and returned(calling convention).
+ - how data types are represented in memory(e.g. alignment, padding).
+ - The format of the binary object code(e.g. `.obj`, `.exe`).
+ - How dynamic linking works and how shared libraries are used.
+ - How memory management, exception handling and system calls are structured.
+
+There are two types of ABI commonly used in Windows and LInux respectively:
+ - Microsoft X64
+ - System V ABI
+
+ They differ in how they organize registers, calling conventions, and other details. 
+
 || Microsoft X64 | System V ABI |
 |-|:-------------|:--------|
 |Registers| 16 general-purpose registers and 16 XMM/YMM registers | Registers RDI, RSI, RDX, RCX, R8, R9, and XMM0–XMM7 |
-|Calling convention|Four-register fast-call|Follows the AMD64 ABI calling convention|
+|Calling convention|Four-register fast-call(`rcx`, `rdx`, `r8`, `r9`)|Follows the AMD64 ABI calling convention|
 |Use|Used in Windows|Used in Linux, FreeBSD, macOS, and Solaris|
 Features|Includes a shadow store for callees|Includes the Executable and Linkable Format (ELF)|
 -----------------------------------
 ### General-purpose registers  
 There are 16 GPRs on the x64 instruction set; they are 64-bit wide; they are referred to as
 `rax, rbx, rcx, rdx, rbp, rsi, rdi, rsp, r8, r9, r10, r11 r12, r13, r14 and r15`.  
-The prefix “general-purpose” is a little misleading; while they are technically general-purpose in the sense that the CPU itself doesn't govern how they should be used, some of these registers have specific purposes and need to treated in specific ways according to what is known as the OS calling conventions.
+The prefix “general-purpose” is a little misleading; while they are technically general-purpose in the sense that the CPU itself doesn't govern how they should be used, some of these registers have specific purposes and need to treated in specific ways according to ABI.
 ```
 General-purpose register Field
 --------------------------------------------------------------------
@@ -33,14 +48,11 @@ General-purpose register Field
 ```
 -----------------------------------
 ### SIMD registers
-There are 16 FPRs on the x64 instruction set; they are 128-bit wide; they are referred to as `xmm0 .. xmm15`.
+There are 16 FPRs on the x64 instruction set; they are 128-bit wide; they are referred to as `xmm0` .. `xmm15`.
 
-- 128-bit `xmm` registers were introduced by Intel in 1999 as SSE(Streaming SIMD Extensions). 
-- When you execute an AVX instruction, it uses the lower 256 bits of the register (YMM).  
-
-- 256-bit `ymm` registers were introduced as AVX(Advanced Vector Extensions).  
-`AVX2` was later introduced in 2013, expanding usage of `ymm` into integer operations while `AVX` focused only on floating-point operations.  
-- When you execute an SSE instruction, it operates on the lower 128 bits of the register (XMM).
+- 128-bit `xmm` registers were introduced by Intel in 1999 as SSE(Streaming SIMD Extensions). When you execute an SSE instruction, it operates on the lower 128 bits of the register (`xmm`).
+- 256-bit `ymm` registers were introduced as AVX(Advanced Vector Extensions). When you execute an AVX instruction, it uses the lower 256 bits of the register (`ymm`).  
+- `AVX2` was later introduced in 2013, expanding usage of `ymm` into integer operations while `AVX` focused only on floating-point operations.  
 - 512-bit `zmm` registers were introduced as AVX-512.  
 - When you execute an AVX-512 instruction, it operates on the full 512-bit register (ZMM).
 
@@ -87,7 +99,6 @@ about rfl(flag register)
 |`PF(Parity flag)`|Indicates the total number of bits that are set in the result. `1` means even number of bits have been set.|
 -----------------------------------
 
-## 2. OS
 ### Memory Segement
 <svg width="600" height="600" xmlns="http://www.w3.org/2000/svg">
   <!-- Draw the outer rectangle -->
@@ -146,20 +157,19 @@ about rfl(flag register)
 |YWORD| Also used only in NASM syntax, this refers to 256 bits in terms of size (i.e. the size of ymm register.)| - |
 | Pointers| On the x64 ISA, pointers are all 64-bit addresses.|
 -----------------------------------
-### Microsoft x64 Calling Convention
+### Microsoft x64 ABI
 
-###### What is calling convention?
-- Strict guidelines that our assembly code must adhere to in order for the OS to be able to run our code.  
+##### What is calling convention?
+- Strict guidelines that our assembly code must adhere to when function is used, in order for the OS to be able to run our code.  
 
 For x64 calling convention document, refer to [Microsoft Guide](https://learn.microsoft.com/en-us/cpp/build/x64-calling-convention).
-
-#### Alignment requirements
+##### Function parameters and return values
+There are some rules that dictates how functions should be called and how they sould return their results.
+##### Integer arugments
+The first four integer arguments are passed in registers. Integer values are passed in left-to-right order in `rcx`, `rdx`, `r8` and `r9`. Arugments five or higher are passed on the stack.
+##### Alignment requirements
 Most data structures must be aligned to a specific boundary.
 For example, stack pointer `rsp` must be aligend to a 16-byte boundary.
-#### Function parameters and return values
-There are some rules that dictates how functions should be called and how they sould return their results.
-#### Integer arugments
-The first four integer arguments are passed in registers. Integer values are passed in left-to-right order in `rcx`, `rdx`, `r8` and `r9`. Arugments five or higher are passed on the stack.
 
 For example, let's assume we are calling the function `foo` defined below.
 ```C
@@ -217,11 +227,7 @@ void foo_fp(float a, float b, float c, float d, float e)
 - Structs/unions 8/16/32/64 bits in size may be passed as if they were integers of the same size. Those of other sizes are passed as a pointer as well.
 - For variadic arguments (i.e. `foo_var(int a, ...)`), the aforementioned conventions apply depending on the type of the arguments that are passed in. However, for floating-point values, both the integer and floating-point registers must have the same argument's value, in case the callee expects the value in the integer registers.
 - For unprototyped functions (e.g. forward-declarations), the caller passes integer values as integers and floating-point values as double-precision. The same rule about floating-point values needing to be in both the integer and floating-point registers applies as well.
-
-#### Return values
-- Any scalar return value less than 64-bit is passed to `rax`.
-- Any floating return value is passed to `xmm0`.
-- Any user-defined type return value with a size of 1/2/4/8/16/32/64-bit is passed to `rax`. Otherwise, a pointer to its memory shall be passed to `rcx` before function call.
+- Example
 ```C
 struct Foo
 {
@@ -242,19 +248,22 @@ Foo myStruct = foo_struct(1, 2.0f, 3);
 | 1 | rdx | 
 | 2.0f |  xmm2 | 
 | 3 | r9 | 
+##### Return values
+- Any scalar return value less than 64-bit is passed to `rax`.
+- Any floating return value is passed to `xmm0`.
+- Any user-defined type return value with a size of 1/2/4/8/16/32/64-bit is passed to `rax`. Otherwise, a pointer to its memory shall be passed to `rcx` before function call.
 
-#### Volatile and non-volatile
+
+##### Volatile and non-volatile
 Registers are either volatile or non-volatile.  
 
-###### Volatile  
-- Volatile registers are subject to change and are not guaranteed to be preserved between function calls and scope changes.
-- `rax`, `rcx`, `rdx`, `r8`, `r9`, `r10`, and `r11` registers are considered volatile.
-###### Non-volatile
-- Non-volatile registers shall be guaranteed to *preserve* valid values. Therefore, we are responsible for *preserving* the state of the registers.
-- `rbx`, `rbp`, `rdi`, `rsi`, `rsp`, and `r12~15` registers are considered non-volatile.
+- Volatile  
+Volatile registers are subject to change and are not guaranteed to be preserved between function calls and scope changes. `rax`, `rcx`, `rdx`, `r8`, `r9`, `r10`, and `r11` registers are considered volatile.
+- Non-volatile
+Non-volatile registers shall be guaranteed to *preserve* valid values. Therefore, we are responsible for *preserving* the state of the registers. `rbx`, `rbp`, `rdi`, `rsi`, `rsp`, and `r12~15` registers are considered non-volatile.
 
-#### The shadow space(home space)
-Under the Microsoft x64 calling convention, there is a unique concept of what's known as a *shadow space*, also referred to as a home space. This is a space that is reserved every time you enter a function and is equal to at least 32 bytes (which is enough space to hold 4 arguments). This space must be reserved whenever you're making use of the stack, since it's what is reserved for things leaving the register values on the stack for debuggers to inspect later on. While the calling convention does not explicitly require the callee to use the shadow space, you should allocate it regardless when you are utilizing the stack, especially in a non-leaf function.
+##### The shadow space(home space)
+Under the Microsoft x64 calling convention, there is an unique concept of what's known as a *shadow space*, also referred to as a home space. This is a space that is reserved every time you enter a function and is equal to at least 32 bytes (which is enough space to hold 4 arguments). This space must be reserved whenever you're *making use of the stack*, since it's what is reserved for things leaving the register values on the stack for debuggers to inspect later on. While the calling convention does not explicitly require the callee to use the shadow space, you should allocate it regardless *when you are utilizing the stack*, especially in a *non-leaf* function.
 
 Also, as a reminder, no matter how much space you allocate for the shadow space and your own function's variables, you still need to ensure that the stack pointer is aligned on a 16-byte boundary after all is said and done.
 
@@ -262,7 +271,7 @@ Also, as a reminder, no matter how much space you allocate for the shadow space 
 -----------------------------------
 
 
-## Hello, World
+### Hello, World
 
 ```C
 bits 64
@@ -294,14 +303,10 @@ main:
 -----------------------------------
 
 ### Addressing mode
-- immediate addressing
-mov rax, 0
-- register addressing
-mov rax, rbx
-- indirect register addressing
-```
-mov rax, [rbx]
-```
+There are three types of addressing modes:
+- immediate addressing `mov rax, 0`
+- register addressing `mov rax, rbx`
+- indirect register addressing `mov rax, [rbx]`
 - rip-relative addressing
 Before rip-relative addressing was available, the loader had to *fix up* all the codes to relocate any instances of memory addresses that were specified in an absolute manner and add displacement according the program's base address. This *fix up* process was saved in format of instructions in `.reloc` section of PE file format. To tell our assembler(NASM) to compile our program with rip-relative addressing, the directive `default rel`  is used.
 
@@ -321,8 +326,8 @@ segment .data
 -----------------------------------
 
 ### Importing and exporting symbols
-- `extern` keyword : used for importing symbols
-- `global` keyword : used for exporting symbols
+- `extern` keyword : used for *importing* symbols
+- `global` keyword : used for *exporting* symbols
 - `_CRT_INIT` refers to Microsoft Visual C++ standard run-time library(MSVCRT) which is Microsoft's implementation of the C99 ISO standard. `libc/libc++` are the equivalents on Linux.
 
 -----------------------------------
