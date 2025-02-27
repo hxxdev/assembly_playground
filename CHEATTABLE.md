@@ -1,5 +1,13 @@
 # Instruction Cheat Table
-Reference : [x86 and amd64 instruction](https://www.felixcloutier.com/x86/)
+## References
+- [Assembly Tutorial](https://sonictk.github.io/asm_tutorial/)
+- [x86 and amd64 instruction](https://www.felixcloutier.com/x86/)
+- [Assemble and Diassemble](https://defuse.ca/online-x86-assembler.htm#disassembly)
+- [MASM](https://learn.microsoft.com/en-us/cpp/assembler/masm/microsoft-macro-assembler-reference)
+- [NASM](https://nasm.us/doc/nasmdoc3.html#section-3.2.1)
+- [Compiler Explorer](https://godbolt.org/)
+
+
 ### Terminology?
 | Directive | Description                               |
 |:-:        |:-:                                        |
